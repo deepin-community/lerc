@@ -1,4 +1,50 @@
 #!/usr/bin/make -f
 
+# DH_VERBOSE := 1
+
+include /usr/share/dpkg/pkg-info.mk
+
+UPSTREAM_VERSION = $(shell echo $(DEB_VERSION_UPSTREAM) | sed -e 's/\+.*//')
+
+
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+export PYBUILD_NAME=lerc
+
 %:
-	dh $@
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_clean:
+	dh_auto_clean
+	dh_auto_clean --builddirectory build-static
+	dh_auto_clean --buildsystem=pybuild --sourcedirectory=OtherLanguages/Python
+	$(RM) -r OtherLanguages/Python/lerc.egg-info
+
+override_dh_auto_configure:
+	dh_auto_configure
+	dh_auto_configure --builddirectory build-static -- -DBUILD_SHARED_LIBS=FALSE
+
+override_dh_auto_build:
+	dh_auto_build
+	dh_auto_build --builddirectory build-static
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	env LD_LIBRARY_PATH=$(shell dirname $(CURDIR)/*/libLerc.so) PYTHONPATH=$(CURDIR)/OtherLanguages/Python \
+		python3 -c "import lerc; assert lerc.test() == 0"
+endif
+
+override_dh_auto_install:
+	dh_auto_install --buildsystem=pybuild -ppython3-lerc --sourcedirectory=OtherLanguages/Python
+	dh_auto_install --builddirectory build-static
+	dh_auto_install
+
+# Ubuntu wants the build to fail when symbols disappear
+override_dh_makeshlibs:
+ifneq ($(shell dpkg-vendor --query vendor),Ubuntu)
+	dh_makeshlibs -- -v$(UPSTREAM_VERSION) -c0
+else
+	dh_makeshlibs -- -v$(UPSTREAM_VERSION)
+endif
+
+override_dh_numpy3:
+	dh_numpy3 -p python3-lerc
