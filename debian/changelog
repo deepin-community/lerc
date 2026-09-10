@@ -1,3 +1,9 @@
+lerc (4.0.0+ds-4) unstable; urgency=medium
+
+  * Rebuild with LTO enabled (dpkg vendor feature optimize/lto).
+
+ -- tunaichao <tunaichao@uniontech.com>  Thu, 10 Sep 2026 18:01:53 +0800
+
 lerc (4.0.0+ds-3) unstable; urgency=medium
 
   [ Antonio Valentino ]
